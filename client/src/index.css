@@ -8,18 +8,12 @@
 @plugin "daisyui/theme" {
   name: "light";
   default: true;
-  --color-primary: #4CAF50;
-  --color-secondary: #81C784 ;
-  --color-accent: #2E7D32 ;
+  --color-primary: #764ba2	;
+  --color-secondary: #667eea	 ;
+  --color-accent: #f093fb;
   --color-neutral: #F5F5F5 ;
 }
-@plugin "daisyui/theme" {
-  name: "dark";
-  --color-primary: #66BB6A;
-  --color-secondary: #1E3B2A;
-  --color-accent: #2E7D32;
-  --color-neutral: #121E15;
-}
+
 
 * {
    font-family: "Open Sans", sans-serif;

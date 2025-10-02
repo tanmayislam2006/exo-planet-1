@@ -1,7 +1,7 @@
 import { Link, NavLink } from "react-router";
 import { use } from "react";
 import { toast } from "react-toastify";
-import AuthContext from '../../Context/AuthContext';
+import AuthContext from "../../Context/AuthContext";
 import {
   FaHome,
   FaSeedling,
@@ -32,21 +32,17 @@ const Navbar = () => {
           Home
         </NavLink>
       </li>
-      {firebaseUser && (
-        <>
-          <li>
-            {" "}
-            <NavLink
-              className={({ isActive }) =>
-                isActive ? "font-bold text-primary underline" : "text-gray-500"
-              }
-              to={"/shareTips"}
-            >
-              Share Tips
-            </NavLink>
-          </li>
-        </>
-      )}
+      <li>
+        {" "}
+        <NavLink
+          className={({ isActive }) =>
+            isActive ? "font-bold text-primary underline" : "text-gray-500"
+          }
+          to={"/dashboard"}
+        >
+          Explore Now
+        </NavLink>
+      </li>
     </>
   );
 
@@ -55,6 +51,12 @@ const Navbar = () => {
       <li>
         <Link className="text-gray-500" to="/">
           Home
+        </Link>
+
+      </li>
+      <li>
+        <Link className="text-gray-500" to="/dashboard">
+          Explore Now
         </Link>
       </li>
     </>
@@ -65,12 +67,9 @@ const Navbar = () => {
       <nav className="navbar  justify-between  bg-base-100 max-w-7xl mx-auto sticky top-0 z-10 shadow-sm">
         <Link to="/" className="flex items-center">
           <div className="w-16 rounded-full">
-            <img
-              alt="green connect logo"
-              className="bg-transparent"
-            />
+            <img alt="exo planet finder logo" className="bg-transparent" />
           </div>
-          <p className="font-bold text-xl hidden md:block">Green Connect</p>
+          <p className="font-bold text-xl hidden md:block">Exo Planet Finder</p>
         </Link>
         <div className="">
           <ul className="hidden lg:flex gap-6">{links}</ul>
