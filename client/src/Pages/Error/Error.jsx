@@ -1,5 +1,4 @@
 import React from "react";
-import ErrorImg from "../../assets/error.svg";
 import { useNavigate } from "react-router";
 
 const Error = () => {
@@ -7,7 +6,7 @@ const Error = () => {
 
   return (
     <div className="flex flex-col items-center justify-center h-screen text-center p-6 bg-gray-100">
-      <img src={ErrorImg} alt="Error" className="w-64 h-64 md:w-80 md:h-80  mb-6" />
+
       <h1 className="text-4xl font-bold text-primary mb-4">
         Oops! Something Went Wrong
       </h1>

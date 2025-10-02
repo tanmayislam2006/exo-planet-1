@@ -11,7 +11,7 @@ import {
 } from "react-icons/fa";
 
 const Navbar = () => {
-  const { logoutUser, user } = use(AuthContext);
+  const { logoutUser, firebaseUser } = use(AuthContext);
   const handleLogOut = () => {
     logoutUser()
       .then((res) => {
@@ -32,7 +32,7 @@ const Navbar = () => {
           Home
         </NavLink>
       </li>
-      {user && (
+      {firebaseUser && (
         <>
           <li>
             {" "}
@@ -75,7 +75,7 @@ const Navbar = () => {
         <div className="">
           <ul className="hidden lg:flex gap-6">{links}</ul>
         </div>
-        {user ? (
+        {firebaseUser ? (
           <div className="dropdown dropdown-end mr-5">
             <div
               tabIndex={0}
@@ -83,10 +83,10 @@ const Navbar = () => {
               className="btn btn-ghost btn-circle avatar relative group"
             >
               <div className="w-10 rounded-full">
-                <img alt="user" src={user?.photoURL} />
+                <img alt="user" src={firebaseUser?.photoURL} />
               </div>
               <p className="absolute left-1/2 -translate-x-1/2 -bottom-10  bg-gray-800 text-white text-xs rounded px-3 py-1 opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-50">
-                {user?.fullName}
+                {firebaseUser?.fullName}
               </p>
             </div>
             <ul
@@ -94,7 +94,7 @@ const Navbar = () => {
               className="menu menu-sm dropdown-content bg-base-100 rounded-box z-1 mt-3 w-64 p-2 shadow space-y-4"
             >
               {dropdownLinks}
-              {user && (
+              {firebaseUser && (
                 <li>
                   <button onClick={handleLogOut} className="btn">
                     Log Out
@@ -113,40 +113,6 @@ const Navbar = () => {
             </Link>
           </div>
         )}
-      </nav>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-base-100 border-t border-gray-200 shadow lg:hidden">
-        <ul className="flex justify-around items-center py-2">
-          <li>
-            <NavLink
-              to="/"
-              className={({ isActive }) =>
-                isActive
-                  ? "flex flex-col items-center text-primary"
-                  : "flex flex-col items-center text-gray-500"
-              }
-            >
-              <FaHome size={22} />
-              <span className="text-xs">Home</span>
-            </NavLink>
-          </li>
-          {user ? (
-            <>
-              <li>
-                <NavLink
-                  to="/dashboard"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "flex flex-col items-center text-primary"
-                      : "flex flex-col items-center text-gray-500"
-                  }
-                >
-                  <FaPlus size={22} />
-                  <span className="text-xs">Dashboard</span>
-                </NavLink>
-              </li>
-            </>
-          ) : null}
-        </ul>
       </nav>
     </>
   );

@@ -1,220 +1,179 @@
-import React, { use, useState } from "react";
-import { FcGoogle } from "react-icons/fc";
+import React, { useContext, useState } from "react";
 import { toast } from "react-toastify";
-import Swal from "sweetalert2";
 import { Link, useLocation, useNavigate } from "react-router";
-import { FaRegEye, FaRegEyeSlash } from "react-icons/fa";
 import AuthContext from "../../Context/AuthContext";
+import { Eye, EyeOff, User, Lock, Rocket } from "lucide-react";
 
 const Login = () => {
-  const {
-    googleLogin,
-    errorMessage,
-    setErrorMessage,
-    loginUser,
-    refresh,
-    setRefresh,
-  } = use(AuthContext);
+  const { errorMessage, setErrorMessage, loginUser } = useContext(AuthContext);
   const location = useLocation();
   const navigate = useNavigate();
-    const [showPass, setShowPass] = useState(false);
-  const handleGoogleLogin = () => {
-    googleLogin()
-      .then((result) => {
-        const user = result.user;
-        // check user from database
-        fetch(`https://green-connect-server.onrender.com/user/${user?.uid}`)
-          .then((res) => res.json())
-          .then((data) => {
-            const availableUser = data?.user;
-            // if user is not available
-            if (!availableUser) {
-              const userProfile = {
-                email: user?.email,
-                fullName: user?.displayName,
-                photoURL: user?.photoURL,
-                creationTime: user?.metadata?.creationTime,
-                lastSignInTime: user?.metadata?.lastSignInTime,
-                uid: user?.uid,
-              };
-              fetch("https://green-connect-server.onrender.com/register", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(userProfile),
-              })
-                .then((res) => res.json())
-                .then((data) => {
-                  if (data.insertedId) {
-                    setRefresh(!refresh);
-                    setErrorMessage("");
-                  }
-                });
-            }
-          });
-        if (user) {
-          // update log in information   in db
-          fetch("https://green-connect-server.onrender.com/login", {
-            method: "PATCH",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: JSON.stringify({
-              email: user?.email,
-              lastSignInTime: user?.metadata?.lastSignInTime,
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.modifiedCount) {
-                setRefresh(!refresh);
-              }
-            });
-        }
-
-        navigate(location?.state || "/");
-
-        toast.success("Login successful!");
-      })
-      .catch((error) => {
-        setErrorMessage(error.message);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: errorMessage,
-        });
-      });
-  };
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const form = e.target;
-    const email = form.email.value;
-    const password = form.password.value;
+    
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    
     loginUser(email, password)
-      .then((result) => {
-        const user = result.user;
-        if (user) {
-          // update information in db
-          fetch("https://green-connect-server.onrender.com/login", {
-            method: "PATCH",
-            headers: {
-              "content-type": "application/json",
-            },
-            body: JSON.stringify({
-              email: user?.email,
-              lastSignInTime: user?.metadata?.lastSignInTime,
-            }),
-          })
-            .then((res) => res.json())
-            .then((data) => {});
-        }
-        navigate(location?.state || "/");
-        Swal.fire({
-          icon: "success",
-          title: "Login Successful",
-          text: "Welcome back!",
+      .then((userCredential) => {
+        const user = userCredential.user;
+        console.log(user);
+        const from = location.state?.from?.pathname || "/";
+        
+        // Show success toast
+        toast.success("Welcome Back! 🚀", {
+          position: "top-right",
+          autoClose: 3000,
         });
+        
+        // Navigate to home page
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1500);
       })
       .catch((error) => {
-        setErrorMessage(error.message);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: errorMessage,
-        });
+        console.error("Error logging in:", error);
+        let errorMessage = "Login failed. Please try again.";
+        
+        if (error.code === 'auth/invalid-credential') {
+          errorMessage = "Invalid email or password.";
+        } else if (error.code === 'auth/user-not-found') {
+          errorMessage = "No account found with this email.";
+        } else if (error.code === 'auth/wrong-password') {
+          errorMessage = "Incorrect password.";
+        } else if (error.code === 'auth/too-many-requests') {
+          errorMessage = "Too many attempts. Please try again later.";
+        }
+        
+        toast.error(errorMessage);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4">
-      <div className="w-full border border-gray-200 max-w-md  rounded-lg shadow-md overflow-hidden">
-        <div className="bg-accent p-6 text-center">
-          <img
-            alt="exo-planet-finder"
-            className="h-16 mx-auto mb-2"
-          />
-          <h2 className="text-xl font-bold text-white">Welcome Back</h2>
-          <p className="text-white">Connect with your gardening community</p>
+    <div className="min-h-screen flex items-center justify-center py-8" style={{ 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' 
+    }}>
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -left-20 w-60 h-60 bg-white/10 rounded-full animate-pulse"></div>
+        <div className="absolute top-40 right-32 w-40 h-40 bg-white/5 rounded-full animate-bounce"></div>
+        <div className="absolute bottom-32 left-1/4 w-32 h-32 bg-white/10 rounded-full animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 right-40 w-28 h-28 bg-white/5 rounded-full animate-bounce delay-500"></div>
+        <div className="absolute bottom-40 right-20 w-44 h-44 bg-white/10 rounded-full animate-pulse delay-1500"></div>
+      </div>
+
+      {/* Login Card */}
+      <div className="relative z-10 bg-white/20 backdrop-blur-lg rounded-3xl p-12 w-full max-w-md mx-4 shadow-2xl border border-white/30">
+        
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <Rocket className="w-8 h-8 text-white" />
+            </div>
+            <span className="text-3xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+              Exo Planet
+            </span>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+          <p className="text-white/80 text-sm">Continue your cosmic journey</p>
         </div>
 
-        <div className="p-6">
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full cursor-pointer flex items-center justify-center gap-2 py-2 px-4 border border-gray-300 rounded-md   transition-colors mb-4"
-          >
-            <FcGoogle className="text-2xl" />
-            <span>Continue with Google</span>
-          </button>
-
-          <div className="flex items-center my-4">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="mx-4 text-gray-500">or</span>
-            <div className="flex-grow border-t border-gray-300"></div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Email Field */}
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-transform duration-300 group-focus-within:scale-110">
+              <User className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500" />
+            </div>
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-12 pr-4 py-4 bg-white/90 rounded-2xl text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all duration-300 border border-transparent focus:border-blue-400 shadow-lg"
+              required
+            />
           </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* email Field */}
-            <div className="mb-4">
-              <label htmlFor="email" className="block  font-medium mb-2">
-                Email <span className="text-red-700">*</span>
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="Enter your email"
-                className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none"
-                required
-              />
+          {/* Password Field */}
+          <div className="relative group">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 transition-transform duration-300 group-focus-within:scale-110">
+              <Lock className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500" />
             </div>
-            <div className="mb-4 relative ">
-              <p
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-8 bottom-3 cursor-pointer"
-              >
-                {showPass ? (
-                  <FaRegEyeSlash size={20} />
-                ) : (
-                  <FaRegEye size={20} />
-                )}
-              </p>
-              <label htmlFor="password" className="block  font-medium mb-2">
-                Password <span className="text-red-700">*</span>
-              </label>
-              <input
-                type={showPass ? "text" : "password"}
-                id="password"
-                name="password"
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border border-gray-400 rounded-lg focus:outline-none"
-                required
-              />
-            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-12 pr-12 py-4 bg-white/90 rounded-2xl text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all duration-300 border border-transparent focus:border-blue-400 shadow-lg"
+              required
+            />
             <button
-              type="submit"
-              className="w-full bg-primary cursor-pointer text-white py-2 px-4 rounded-md hover:bg-[#3e8e41] transition-colors focus:outline-none focus:ring-2 focus:ring-opacity-50"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500 transition-colors duration-300 p-1 rounded-lg hover:bg-white/50"
             >
-              Log In
+              {showPassword ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
             </button>
-          </form>
-
-          <div className="mt-4 text-center">
-            <a href="#" className="text-primary hover:underline">
-              Forgot password?
-            </a>
-            <p className="mt-2">
-              Don't have an account?{" "}
-              <Link
-                state={location.state}
-                to="/register"
-                className="text-primary font-medium hover:underline"
-              >
-                Register
-              </Link>
-            </p>
           </div>
+
+          {/* Login Button */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full py-4 px-8 bg-gradient-to-r from-purple-600 to-blue-500 text-white font-semibold rounded-2xl hover:from-purple-700 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 focus:scale-95 shadow-lg ${
+              isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-xl'
+            }`}
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Signing In...
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-2">
+                <Rocket className="w-5 h-5" />
+                Launch to Dashboard
+              </div>
+            )}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div className="flex items-center my-8">
+          <div className="flex-1 h-px bg-white/30"></div>
+          <span className="px-4 text-white/60 text-sm">New explorer?</span>
+          <div className="flex-1 h-px bg-white/30"></div>
+        </div>
+
+        {/* Sign up link */}
+        <div className="text-center">
+          <Link 
+            to="/register"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white font-medium transition-colors duration-300 hover:underline"
+          >
+            Begin Your Cosmic Journey
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
       </div>
     </div>
