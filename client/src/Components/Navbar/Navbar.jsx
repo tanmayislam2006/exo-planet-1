@@ -15,7 +15,7 @@ const Button = ({ children, className = "" }) => {
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
-  const {firebaseUser}=use(AuthContext)
+  const {firebaseUser,logoutUser}=use(AuthContext)
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#071028]/95 backdrop-blur-sm border-b border-[#1a2440] shadow-lg">
