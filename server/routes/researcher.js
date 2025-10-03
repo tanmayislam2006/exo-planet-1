@@ -31,6 +31,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 
     const formData = new FormData();
     formData.append("file", fs.createReadStream(req.file.path));
+    console.log(formData);
 
     const response = await axios.post("http://13.200.246.18:8000/predict", formData, {
       headers: formData.getHeaders(),

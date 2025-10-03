@@ -1,7 +1,7 @@
 // Researcher.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { FileText, Brain, Upload, Download, Cpu, Database } from "lucide-react";
+import { FileText, Brain, Upload, Download, Cpu, Database, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import Navbar from "./Navbar";
 import useAxios from "../../../Hooks/useAxios";
 
@@ -50,7 +50,7 @@ const Researcher = () => {
     koi_srad_err1: 0.05,
     koi_srad_err2: -0.05,
   });
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
   const [uploadMessage, setUploadMessage] = useState("");
   const [trainMessage, setTrainMessage] = useState("");
   const [trainForm, setTrainForm] = useState({
@@ -58,6 +58,8 @@ const Researcher = () => {
     n_estimators: 100,
     test_size: 0.2,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
   const axiosInstance = useAxios();
@@ -81,6 +83,9 @@ const Researcher = () => {
 
   const handleJsonSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
 
     const submitData = {
       api_key: import.meta.env.VITE_API_KEY || "placeholder-key",
@@ -104,7 +109,10 @@ const Researcher = () => {
       const prediction = res.data?.prediction;
       setResult(prediction);
     } catch (err) {
-      setResult("❌ Server Error - Could not process request");
+      setError("❌ Server Error - Could not process request. Please try again.");
+      console.error("API Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -192,7 +200,7 @@ const Researcher = () => {
       );
     }
   };
-console.log(result);
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/");
@@ -210,6 +218,153 @@ console.log(result);
       />
     </div>
   );
+
+  // Results display component
+  const ResultsDisplay = ({ result }) => {
+    if (!result) return null;
+
+    return (
+      <div className="mt-6 p-6 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+            <CheckCircle className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h4 className="text-2xl font-bold text-white">Analysis Results</h4>
+            <p className="text-white/70">Exoplanet Classification Prediction</p>
+          </div>
+        </div>
+
+        {/* Main Prediction Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Classification Card */}
+          <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 p-6 rounded-2xl border border-blue-400/30">
+            <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              Classification
+            </h5>
+            <div className={`text-2xl font-bold mb-2 ${
+              result.class === 'CONFIRMED' 
+                ? 'text-green-400' 
+                : result.class === 'CANDIDATE'
+                ? 'text-yellow-400'
+                : 'text-red-400'
+            }`}>
+              {result.class}
+            </div>
+            <div className="text-white/70 text-sm">Exoplanet Status</div>
+          </div>
+
+          {/* Confidence Card */}
+          <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 p-6 rounded-2xl border border-purple-400/30">
+            <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Brain className="w-5 h-5" />
+              Confidence Score
+            </h5>
+            <div className="text-2xl font-bold text-white mb-2">
+              {(result.confidence * 100).toFixed(1)}%
+            </div>
+            <div className="w-full bg-white/20 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full transition-all duration-1000"
+                style={{ width: `${result.confidence * 100}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Model Version */}
+          <div className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 p-6 rounded-2xl border border-cyan-400/30">
+            <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Cpu className="w-5 h-5" />
+              Model Version
+            </h5>
+            <div className="text-2xl font-bold text-cyan-300 mb-2">
+              v{result.model_version || "3.0.0"}
+            </div>
+            <div className="text-white/70 text-sm">AI Model</div>
+          </div>
+        </div>
+
+        {/* Probability Distribution */}
+        <div className="mb-6">
+          <h5 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Classification Probabilities
+          </h5>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {Object.entries(result.probabilities || {}).map(([category, probability]) => (
+              <div key={category} className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-white font-medium capitalize">
+                    {category.replace('_', ' ')}
+                  </span>
+                  <span className="text-white/70 text-sm">
+                    {(probability * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-1000 ${
+                      category === 'Confirmed' 
+                        ? 'bg-green-500' 
+                        : category === 'Candidate'
+                        ? 'bg-yellow-500'
+                        : 'bg-red-500'
+                    }`}
+                    style={{ width: `${probability * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scientific Explanation */}
+        <div>
+          <h5 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            Scientific Analysis
+          </h5>
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+            <div className="text-white/80 leading-relaxed space-y-4">
+              {result.explanation?.split('\n\n').map((paragraph, index) => (
+                <p key={index} className="text-justify">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+            
+            {/* Key Highlights */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                <Brain className="w-8 h-8 text-blue-400 flex-shrink-0" />
+                <div>
+                  <div className="text-white font-semibold">Orbital Period</div>
+                  <div className="text-blue-300">{formData.koi_period} days</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                <Cpu className="w-8 h-8 text-purple-400 flex-shrink-0" />
+                <div>
+                  <div className="text-white font-semibold">Planet Radius</div>
+                  <div className="text-purple-300">{formData.koi_prad} Earth Radii</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <div className="flex justify-between items-center text-white/60 text-sm">
+            <span>Analysis completed at {new Date().toLocaleTimeString()}</span>
+            <span>EXO Planet Finder AI</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div
@@ -275,8 +430,7 @@ console.log(result);
                       KOI Parameters Analysis
                     </h3>
                     <p className="text-white/70">
-                      Input Kepler Object of Interest parameters for exoplanet
-                      prediction
+                      Input Kepler Object of Interest parameters for exoplanet prediction
                     </p>
                   </div>
                 </div>
@@ -294,10 +448,7 @@ console.log(result);
                       koi_steff: { label: "KOI Stellar Temp", step: "1" },
                       koi_slogg: { label: "KOI Stellar LogG", step: "0.1" },
                       koi_srad: { label: "KOI Stellar Radius", step: "0.1" },
-                      koi_kepmag: {
-                        label: "KOI Kepler Magnitude",
-                        step: "0.1",
-                      },
+                      koi_kepmag: { label: "KOI Kepler Magnitude", step: "0.1" },
                       ra: { label: "Right Ascension", step: "0.01" },
                       dec: { label: "Declination", step: "0.01" },
                     }).map(([key, config]) =>
@@ -307,22 +458,35 @@ console.log(result);
 
                   <button
                     type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl hover:from-blue-600 hover:to-purple-600 transition duration-300 shadow-lg font-semibold text-lg"
+                    disabled={loading}
+                    className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl hover:from-blue-600 hover:to-purple-600 transition duration-300 shadow-lg font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Analyze KOI Parameters
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Analyzing...
+                      </>
+                    ) : (
+                      "Analyze KOI Parameters"
+                    )}
                   </button>
                 </form>
 
-                {result && (
-                  <div className="mt-6 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/20">
-                    <h4 className="text-white font-semibold mb-3">
-                      Analysis Results:
-                    </h4>
-                    <pre className="text-white/80 bg-black/30 p-4 rounded-xl overflow-x-auto">
-                      {result}
-                    </pre>
+                {/* Error Display */}
+                {error && (
+                  <div className="mt-6 p-4 bg-red-500/20 backdrop-blur-sm rounded-2xl border border-red-400/30">
+                    <div className="flex items-center gap-3 text-red-200">
+                      <XCircle className="w-6 h-6" />
+                      <div>
+                        <h4 className="font-semibold">Analysis Error</h4>
+                        <p>{error}</p>
+                      </div>
+                    </div>
                   </div>
                 )}
+
+                {/* Results Display */}
+                <ResultsDisplay result={result} />
               </div>
             )}
 
