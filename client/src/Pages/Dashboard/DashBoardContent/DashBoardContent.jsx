@@ -95,7 +95,7 @@ const DashBoardContent = () => (
       </Link>
       
       {/* Researcher Card */}
-      <div className="p-8 bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 transition duration-500 hover:border-fuchsia-400 hover:scale-[1.02]">
+      <Link to="/dashboard/researcher" className="p-8 bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 transition duration-500 hover:border-fuchsia-400 hover:scale-[1.02]">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 bg-gradient-to-r from-[#764ba2] to-[#f093fb] rounded-xl flex items-center justify-center shadow-lg transition duration-300 group-hover:shadow-2xl">
             <CpuIcon className="w-8 h-8 text-white" />
@@ -115,12 +115,12 @@ const DashBoardContent = () => (
             <span>**API Access:** Secure and scalable access to the full data archive and compute resources.</span>
           </li>
         </ul>
-        <button 
+        <button
           className="mt-8 py-3 px-6 w-full text-lg bg-gradient-to-r from-[#764ba2] to-[#f093fb] text-white font-semibold rounded-xl shadow-xl hover:from-[#f093fb] hover:to-[#764ba2] transition duration-300 transform hover:translate-y-[-2px] focus:outline-none focus:ring-4 focus:ring-[#f093fb]/50"
         >
           Access Research Tools
         </button>
-      </div>
+      </Link>
     </div>
   </div>
 );

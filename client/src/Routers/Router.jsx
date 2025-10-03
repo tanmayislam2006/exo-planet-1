@@ -9,7 +9,7 @@ import DashboardLayout from "../Layout/DashboardLayout";
 import Dashboard from "../Pages/Dashboard/Dashboard";
 import CitizenScientist from "../Pages/Dashboard/CitizenScientist/CitizenScientist";
 import DashBoardContent from "../Pages/Dashboard/DashBoardContent/DashBoardContent";
-
+import Researcher from "../Pages/Dashboard/Researcher/Researcher";
 
 const router = createBrowserRouter([
   {
@@ -26,12 +26,15 @@ const router = createBrowserRouter([
         path: "/register",
         element: <Register />,
       },
-
     ],
   },
   {
     path: "/dashboard",
-    element:<PrivateRouter><DashboardLayout /></PrivateRouter>,
+    element: (
+      <PrivateRouter>
+        <DashboardLayout />
+      </PrivateRouter>
+    ),
     children: [
       {
         path: "/dashboard",
@@ -41,8 +44,13 @@ const router = createBrowserRouter([
         path: "/dashboard/citizen-scientist",
         element: <CitizenScientist />,
         // element: <PrivateRouter><CitizenScientist /></PrivateRouter>,
-      }
-    ]
-  }
+      },
+      {
+        path: "/dashboard/researcher",
+        element: <Researcher />,
+        // element: <PrivateRouter><Researcher /></PrivateRouter>,
+      },
+    ],
+  },
 ]);
 export default router;

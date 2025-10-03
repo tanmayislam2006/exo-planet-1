@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, use } from 'react';
 import { User, Send, FileText, Mic, LogOut, Rocket, Users, Bot, Cpu } from 'lucide-react'; 
+import AuthContext from '../../../Context/AuthContext';
 
 // --- Constants ---
 const API_BASE = "https://exo-planet-finder.onrender.com/citizen";
@@ -10,6 +11,7 @@ const CitizenScientist = () => {
   const [chatHistory, setChatHistory] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const [csvMessage, setCsvMessage] = useState({ type: '', text: '' });
+  const {logoutUser, firebaseUser} = use(AuthContext)
   
   const chatBoxRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -168,9 +170,9 @@ const CitizenScientist = () => {
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
               <User className="w-5 h-5 text-white" />
-              <span className="text-white">Welcome, Explorer</span>
+              <span className="text-white">{firebaseUser.email}</span>
             </div>
-            <button className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full border border-white/30 hover:bg-white/30 transition duration-300 flex items-center gap-2">
+            <button onClick={() => logoutUser()} className="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-full border border-white/30 hover:bg-white/30 transition duration-300 flex items-center gap-2">
               <LogOut className="w-4 h-4" />
               Logout
             </button>
