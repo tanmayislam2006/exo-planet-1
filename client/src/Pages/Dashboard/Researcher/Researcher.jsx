@@ -1,18 +1,12 @@
 // Researcher.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
-import { 
-  FileText, 
-  Brain, 
-  Upload, 
-  Download,
-  Cpu,
-  Database
-} from 'lucide-react';
-import Navbar from './Navbar';
+import React, { useState } from "react";
+import { useNavigate } from "react-router";
+import { FileText, Brain, Upload, Download, Cpu, Database } from "lucide-react";
+import Navbar from "./Navbar";
+import useAxios from "../../../Hooks/useAxios";
 
 const Researcher = () => {
-  const [activeTab, setActiveTab] = useState('inputJson');
+  const [activeTab, setActiveTab] = useState("inputJson");
   const [formData, setFormData] = useState({
     koi_period: 10.5,
     koi_prad: 2.3,
@@ -54,43 +48,42 @@ const Researcher = () => {
     koi_slogg_err1: 0.1,
     koi_slogg_err2: -0.1,
     koi_srad_err1: 0.05,
-    koi_srad_err2: -0.05
+    koi_srad_err2: -0.05,
   });
-  
-  const [result, setResult] = useState('');
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [trainMessage, setTrainMessage] = useState('');
+  const [result, setResult] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [trainMessage, setTrainMessage] = useState("");
   const [trainForm, setTrainForm] = useState({
     learning_rate: 0.01,
     n_estimators: 100,
-    test_size: 0.2
+    test_size: 0.2,
   });
-  
+
   const navigate = useNavigate();
-  const API_BASE = "https://exo-planet-finder.onrender.com/researcher";
+  const axiosInstance = useAxios();
 
   // Mock user data
   const user = { name: "Researcher" };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleTrainChange = (field, value) => {
-    setTrainForm(prev => ({
+    setTrainForm((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   const handleJsonSubmit = async (e) => {
     e.preventDefault();
-    
+
     const submitData = {
-      api_key: "'''",
+      api_key: import.meta.env.VITE_API_KEY || "placeholder-key",
       dec: Number(formData.dec),
       koi_depth: Number(formData.koi_depth),
       koi_duration: Number(formData.koi_duration),
@@ -107,18 +100,9 @@ const Researcher = () => {
     };
 
     try {
-      const res = await fetch(`${API_BASE}/input`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": localStorage.getItem("token") || "placeholder-token",
-        },
-        body: JSON.stringify(submitData),
-      });
-      
-      const data = await res.json();
-      const prediction = data.prediction;
-      setResult(JSON.stringify(prediction, null, 2));
+      const res = await axiosInstance.post(`/researcher/input`, submitData);
+      const prediction = res.data?.prediction;
+      setResult(prediction);
     } catch (err) {
       setResult("❌ Server Error - Could not process request");
     }
@@ -128,7 +112,7 @@ const Researcher = () => {
     e.preventDefault();
     const fileInput = e.target.elements.csvFile;
     const file = fileInput.files[0];
-    
+
     if (!file) {
       setUploadMessage("Please select a CSV file first.");
       return;
@@ -142,8 +126,10 @@ const Researcher = () => {
 
       const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
-        headers: { "Authorization": localStorage.getItem("token") || "placeholder-token" },
-        body: formData
+        headers: {
+          Authorization: localStorage.getItem("token") || "placeholder-token",
+        },
+        body: formData,
       });
 
       if (!res.ok) throw new Error("Upload failed");
@@ -156,7 +142,7 @@ const Researcher = () => {
       a.click();
 
       setUploadMessage("✅ File processed successfully! Results downloaded.");
-      fileInput.value = '';
+      fileInput.value = "";
     } catch (err) {
       setUploadMessage("❌ Upload failed. Please try again.");
     }
@@ -166,7 +152,7 @@ const Researcher = () => {
     e.preventDefault();
     const fileInput = e.target.elements.trainFile;
     const file = fileInput.files[0];
-    
+
     if (!file) {
       setTrainMessage("Please select a training dataset file.");
       return;
@@ -183,8 +169,10 @@ const Researcher = () => {
 
       const res = await fetch(`${API_BASE}/train`, {
         method: "POST",
-        headers: { "Authorization": localStorage.getItem("token") || "placeholder-token" },
-        body: formData
+        headers: {
+          Authorization: localStorage.getItem("token") || "placeholder-token",
+        },
+        body: formData,
       });
 
       if (!res.ok) throw new Error("Training failed");
@@ -197,15 +185,17 @@ const Researcher = () => {
       a.click();
 
       setTrainMessage("✅ Model trained successfully! Results downloaded.");
-      fileInput.value = '';
+      fileInput.value = "";
     } catch (err) {
-      setTrainMessage("❌ Training failed. Please check your data and try again.");
+      setTrainMessage(
+        "❌ Training failed. Please check your data and try again."
+      );
     }
   };
-
+console.log(result);
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/');
+    navigate("/");
   };
 
   const renderInputField = (label, name, type = "number", step = "0.01") => (
@@ -222,10 +212,13 @@ const Researcher = () => {
   );
 
   return (
-    <div className="min-h-screen relative overflow-hidden text-white" style={{ 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)' 
-    }}>
-      
+    <div
+      className="min-h-screen relative overflow-hidden text-white"
+      style={{
+        background:
+          "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)",
+      }}
+    >
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-20 -left-20 w-60 h-60 bg-white/10 rounded-full animate-pulse"></div>
@@ -236,8 +229,8 @@ const Researcher = () => {
       </div>
 
       <div className="relative z-10 min-h-screen">
-        <Navbar 
-          title="Exo Planet Explorer - Researcher" 
+        <Navbar
+          title="Exo Planet Explorer - Researcher"
           user={user}
           onLogout={handleLogout}
         />
@@ -246,10 +239,10 @@ const Researcher = () => {
           {/* Tab Navigation */}
           <div className="flex gap-2 mb-8 bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20">
             {[
-              { id: 'inputJson', label: 'Input JSON', icon: Database },
-              { id: 'uploadCsv', label: 'Upload CSV', icon: Upload },
-              { id: 'trainModel', label: 'Train AI Model', icon: Brain }
-            ].map(tab => {
+              { id: "inputJson", label: "Input JSON", icon: Database },
+              { id: "uploadCsv", label: "Upload CSV", icon: Upload },
+              { id: "trainModel", label: "Train AI Model", icon: Brain },
+            ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
@@ -257,8 +250,8 @@ const Researcher = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-6 py-3 rounded-xl transition duration-300 ${
                     activeTab === tab.id
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg"
+                      : "text-white/70 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -270,43 +263,50 @@ const Researcher = () => {
 
           {/* Tab Content */}
           <div className="bg-white/10 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 p-8">
-            
             {/* Input JSON Tab */}
-            {activeTab === 'inputJson' && (
+            {activeTab === "inputJson" && (
               <div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
                     <Database className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-white">KOI Parameters Analysis</h3>
-                    <p className="text-white/70">Input Kepler Object of Interest parameters for exoplanet prediction</p>
+                    <h3 className="text-2xl font-bold text-white">
+                      KOI Parameters Analysis
+                    </h3>
+                    <p className="text-white/70">
+                      Input Kepler Object of Interest parameters for exoplanet
+                      prediction
+                    </p>
                   </div>
                 </div>
 
                 <form onSubmit={handleJsonSubmit} className="space-y-6">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-96 overflow-y-auto p-4 bg-white/5 rounded-2xl">
                     {Object.entries({
-                      koi_period: { label: 'KOI Period', step: '0.01' },
-                      koi_prad: { label: 'KOI Planet Radius', step: '0.01' },
-                      koi_depth: { label: 'KOI Depth', step: '0.01' },
-                      koi_impact: { label: 'KOI Impact', step: '0.01' },
-                      koi_duration: { label: 'KOI Duration', step: '0.01' },
-                      koi_teq: { label: 'KOI Equilibrium Temp', step: '1' },
-                      koi_insol: { label: 'KOI Insolation', step: '0.1' },
-                      koi_steff: { label: 'KOI Stellar Temp', step: '1' },
-                      koi_slogg: { label: 'KOI Stellar LogG', step: '0.1' },
-                      koi_srad: { label: 'KOI Stellar Radius', step: '0.1' },
-                      koi_kepmag: { label: 'KOI Kepler Magnitude', step: '0.1' },
-                      ra: { label: 'Right Ascension', step: '0.01' },
-                      dec: { label: 'Declination', step: '0.01' }
-                    }).map(([key, config]) => 
+                      koi_period: { label: "KOI Period", step: "0.01" },
+                      koi_prad: { label: "KOI Planet Radius", step: "0.01" },
+                      koi_depth: { label: "KOI Depth", step: "0.01" },
+                      koi_impact: { label: "KOI Impact", step: "0.01" },
+                      koi_duration: { label: "KOI Duration", step: "0.01" },
+                      koi_teq: { label: "KOI Equilibrium Temp", step: "1" },
+                      koi_insol: { label: "KOI Insolation", step: "0.1" },
+                      koi_steff: { label: "KOI Stellar Temp", step: "1" },
+                      koi_slogg: { label: "KOI Stellar LogG", step: "0.1" },
+                      koi_srad: { label: "KOI Stellar Radius", step: "0.1" },
+                      koi_kepmag: {
+                        label: "KOI Kepler Magnitude",
+                        step: "0.1",
+                      },
+                      ra: { label: "Right Ascension", step: "0.01" },
+                      dec: { label: "Declination", step: "0.01" },
+                    }).map(([key, config]) =>
                       renderInputField(config.label, key, "number", config.step)
                     )}
                   </div>
-                  
-                  <button 
-                    type="submit" 
+
+                  <button
+                    type="submit"
                     className="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-2xl hover:from-blue-600 hover:to-purple-600 transition duration-300 shadow-lg font-semibold text-lg"
                   >
                     Analyze KOI Parameters
@@ -315,7 +315,9 @@ const Researcher = () => {
 
                 {result && (
                   <div className="mt-6 p-4 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/20">
-                    <h4 className="text-white font-semibold mb-3">Analysis Results:</h4>
+                    <h4 className="text-white font-semibold mb-3">
+                      Analysis Results:
+                    </h4>
                     <pre className="text-white/80 bg-black/30 p-4 rounded-xl overflow-x-auto">
                       {result}
                     </pre>
@@ -325,15 +327,19 @@ const Researcher = () => {
             )}
 
             {/* Upload CSV Tab */}
-            {activeTab === 'uploadCsv' && (
+            {activeTab === "uploadCsv" && (
               <div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg">
                     <Upload className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-white">CSV Data Analysis</h3>
-                    <p className="text-white/70">Upload your astronomical dataset for batch processing</p>
+                    <h3 className="text-2xl font-bold text-white">
+                      CSV Data Analysis
+                    </h3>
+                    <p className="text-white/70">
+                      Upload your astronomical dataset for batch processing
+                    </p>
                   </div>
                 </div>
 
@@ -346,23 +352,25 @@ const Researcher = () => {
                       accept=".csv"
                       required
                     />
-                    <button 
-                      type="submit" 
+                    <button
+                      type="submit"
                       className="px-8 py-3 bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white rounded-2xl hover:from-purple-600 hover:to-fuchsia-600 transition duration-300 shadow-lg font-semibold flex items-center gap-2"
                     >
                       <FileText className="w-5 h-5" />
                       Process Data
                     </button>
                   </div>
-                  
+
                   {uploadMessage && (
-                    <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
-                      uploadMessage.includes('✅') 
-                        ? 'bg-green-500/20 text-green-100 border-green-400/30' 
-                        : uploadMessage.includes('❌')
-                        ? 'bg-red-500/20 text-red-100 border-red-400/30'
-                        : 'bg-blue-500/20 text-blue-100 border-blue-400/30'
-                    }`}>
+                    <div
+                      className={`p-4 rounded-2xl backdrop-blur-sm border ${
+                        uploadMessage.includes("✅")
+                          ? "bg-green-500/20 text-green-100 border-green-400/30"
+                          : uploadMessage.includes("❌")
+                          ? "bg-red-500/20 text-red-100 border-red-400/30"
+                          : "bg-blue-500/20 text-blue-100 border-blue-400/30"
+                      }`}
+                    >
                       {uploadMessage}
                     </div>
                   )}
@@ -371,53 +379,71 @@ const Researcher = () => {
             )}
 
             {/* Train AI Model Tab */}
-            {activeTab === 'trainModel' && (
+            {activeTab === "trainModel" && (
               <div>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
                     <Brain className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-white">AI Model Training</h3>
-                    <p className="text-white/70">Train custom exoplanet detection models with your dataset</p>
+                    <h3 className="text-2xl font-bold text-white">
+                      AI Model Training
+                    </h3>
+                    <p className="text-white/70">
+                      Train custom exoplanet detection models with your dataset
+                    </p>
                   </div>
                 </div>
 
                 <form onSubmit={handleTrainModel} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <label className="text-white/80 text-sm font-medium">Learning Rate</label>
+                      <label className="text-white/80 text-sm font-medium">
+                        Learning Rate
+                      </label>
                       <input
                         type="number"
                         step="0.001"
                         value={trainForm.learning_rate}
-                        onChange={(e) => handleTrainChange('learning_rate', e.target.value)}
+                        onChange={(e) =>
+                          handleTrainChange("learning_rate", e.target.value)
+                        }
                         className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-white/80 text-sm font-medium">N Estimators</label>
+                      <label className="text-white/80 text-sm font-medium">
+                        N Estimators
+                      </label>
                       <input
                         type="number"
                         value={trainForm.n_estimators}
-                        onChange={(e) => handleTrainChange('n_estimators', e.target.value)}
+                        onChange={(e) =>
+                          handleTrainChange("n_estimators", e.target.value)
+                        }
                         className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-white/80 text-sm font-medium">Test Size</label>
+                      <label className="text-white/80 text-sm font-medium">
+                        Test Size
+                      </label>
                       <input
                         type="number"
                         step="0.01"
                         value={trainForm.test_size}
-                        onChange={(e) => handleTrainChange('test_size', e.target.value)}
+                        onChange={(e) =>
+                          handleTrainChange("test_size", e.target.value)
+                        }
                         className="w-full px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-green-400 focus:border-transparent"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-white/80 text-sm font-medium">Training Dataset</label>
+                    <label className="text-white/80 text-sm font-medium">
+                      Training Dataset
+                    </label>
                     <input
                       type="file"
                       name="trainFile"
@@ -427,22 +453,24 @@ const Researcher = () => {
                     />
                   </div>
 
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-2xl hover:from-green-600 hover:to-emerald-600 transition duration-300 shadow-lg font-semibold text-lg flex items-center justify-center gap-2"
                   >
                     <Cpu className="w-6 h-6" />
                     🚀 Train AI Model
                   </button>
-                  
+
                   {trainMessage && (
-                    <div className={`p-4 rounded-2xl backdrop-blur-sm border ${
-                      trainMessage.includes('✅') 
-                        ? 'bg-green-500/20 text-green-100 border-green-400/30' 
-                        : trainMessage.includes('❌')
-                        ? 'bg-red-500/20 text-red-100 border-red-400/30'
-                        : 'bg-blue-500/20 text-blue-100 border-blue-400/30'
-                    }`}>
+                    <div
+                      className={`p-4 rounded-2xl backdrop-blur-sm border ${
+                        trainMessage.includes("✅")
+                          ? "bg-green-500/20 text-green-100 border-green-400/30"
+                          : trainMessage.includes("❌")
+                          ? "bg-red-500/20 text-red-100 border-red-400/30"
+                          : "bg-blue-500/20 text-blue-100 border-blue-400/30"
+                      }`}
+                    >
                       {trainMessage}
                     </div>
                   )}
