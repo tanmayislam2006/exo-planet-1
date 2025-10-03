@@ -25,6 +25,7 @@ router.post("/input", async (req, res) => {
       "http://13.200.246.18:8000/predict",
       koiData
     );
+    res.json(response.data);
   } catch (err) {
     console.error("Input API Error:", err.message);
     res.status(500).json({ msg: "Server error while hitting KOI API" });
