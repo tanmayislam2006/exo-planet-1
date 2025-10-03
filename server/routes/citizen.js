@@ -17,7 +17,6 @@ const upload = multer({
 router.post("/chat", async (req, res) => {
   try {
     const { message, session_id } = req.body;
-    console.log(message, session_id);
     if (!message) return res.status(400).json({ reply: "Message is required" });
     const response=await axios.post(`http://13.200.246.18:8000/chat?api_key=${process.env.API_KEY}`, { message, session_id });
     const reply=response.data.response;

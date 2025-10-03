@@ -128,122 +128,158 @@ const Researcher = () => {
     }
   };
 
-const handleCsvUpload = async (e) => {
-  e.preventDefault();
-  const fileInput = e.target.elements.csvFile;
-  const file = fileInput.files[0];
+  const handleCsvUpload = async (e) => {
+    e.preventDefault();
+    const fileInput = e.target.elements.csvFile;
+    const file = fileInput.files[0];
 
-  if (!file) {
-    setUploadMessage("Please select a CSV file first.");
-    return;
-  }
+    console.log("File selected:", file);
 
-  // Validate file
-  if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
-    setUploadMessage("❌ Please upload a valid CSV file.");
-    return;
-  }
+    if (!file) {
+      setUploadMessage("Please select a CSV file first.");
+      return;
+    }
 
-  if (file.size > 10 * 1024 * 1024) {
-    setUploadMessage("❌ File size too large. Maximum 10MB allowed.");
-    return;
-  }
+    // Validate file
+    if (!file.name.endsWith(".csv") && file.type !== "text/csv") {
+      setUploadMessage("❌ Please upload a valid CSV file.");
+      return;
+    }
 
-  setUploadMessage("🔄 Processing your CSV file...");
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadMessage("❌ File size too large. Maximum 10MB allowed.");
+      return;
+    }
 
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
+    setUploadMessage("🔄 Processing your CSV file...");
 
-    const res = await axiosInstance.post(`/researcher/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      responseType: 'blob', // Handle both JSON and file responses
-      timeout: 60000,
-    });
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-    console.log("Response headers:", res.headers);
-    console.log("Response type:", res.headers['content-type']);
-
-    // Check if response is JSON or file
-    const contentType = res.headers['content-type'] || '';
-
-    if (contentType.includes('application/json')) {
-      // It's a JSON response
-      const text = await res.data.text();
-      const result = JSON.parse(text);
-      
-      if (result.success) {
-        setUploadMessage("✅ Analysis complete! Displaying results...");
-        
-        // Display the prediction results
-        if (result.data && result.data.prediction) {
-          setResult(result.data.prediction);
-        } else {
-          setResult(result.data);
-        }
-      } else {
-        throw new Error(result.msg || "Analysis failed");
-      }
-      
-    } else if (contentType.includes('text/csv') || contentType.includes('application/octet-stream')) {
-      // It's a CSV file - trigger download
-      setUploadMessage("✅ Analysis complete! Downloading results...");
-      
-      const blob = new Blob([res.data], { 
-        type: contentType.includes('text/csv') ? 'text/csv' : 'application/octet-stream' 
+      const res = await axiosInstance.post(`/researcher/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        responseType: "blob",
+        timeout: 60000,
       });
-      
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = contentType.includes('text/csv') ? 'prediction_results.csv' : 'results.bin';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(downloadUrl);
-      
-      setUploadMessage("✅ Analysis complete! Results downloaded.");
-      
-    } else {
-      // Unknown content type
-      console.log("Unknown response, full response:", res);
-      setUploadMessage("✅ Processing complete. Check console for results.");
-    }
 
-    fileInput.value = "";
+      console.log("Response status:", res.status);
+      console.log("Response headers:", res.headers);
+      console.log("Response data size:", res.data.size);
 
-  } catch (err) {
-    console.error("Upload error:", err);
-    
-    let errorMessage = "❌ Upload failed. Please try again.";
-    
-    if (err.response?.data) {
-      try {
-        // Try to read error from blob response
-        const errorText = await new Response(err.response.data).text();
-        const errorData = JSON.parse(errorText);
-        
-        if (errorData.detail) {
-          // FastAPI validation error
-          const validationErrors = errorData.detail.map(d => d.msg).join(', ');
-          errorMessage = `❌ Validation error: ${validationErrors}`;
+      const contentType = res.headers["content-type"] || "";
+
+      if (contentType.includes("application/json")) {
+        // JSON response
+        const text = await res.data.text();
+        const result = JSON.parse(text);
+
+        if (result.success) {
+          setUploadMessage("✅ Analysis complete! Displaying results...");
+
+          if (result.data && result.data.prediction) {
+            setResult(result.data.prediction);
+          } else {
+            setResult(result.data);
+          }
         } else {
-          errorMessage = `❌ ${errorData.msg || 'Server error'}`;
+          throw new Error(result.msg || "Analysis failed");
         }
-      } catch {
-        errorMessage = "❌ Server error occurred.";
+      } else if (
+        contentType.includes("text/csv") ||
+        contentType.includes("application/octet-stream")
+      ) {
+        // File download
+        setUploadMessage("✅ Analysis complete! Downloading results...");
+
+        const blob = new Blob([res.data], {
+          type: contentType.includes("text/csv")
+            ? "text/csv"
+            : "application/octet-stream",
+        });
+
+        // Check if blob has data
+        if (blob.size === 0) {
+          throw new Error("Received empty file from server");
+        }
+
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = "prediction_results.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        setUploadMessage("✅ Analysis complete! Results downloaded.");
+      } else {
+        // Unknown content type - try to handle as text
+        const text = await res.data.text();
+        console.log("Unknown response content:", text);
+
+        if (text.includes("{") && text.includes("}")) {
+          // Might be JSON without proper content type
+          try {
+            const result = JSON.parse(text);
+            if (result.success) {
+              setUploadMessage("✅ Analysis complete! Displaying results...");
+              setResult(result.data);
+            } else {
+              throw new Error(result.msg || "Analysis failed");
+            }
+          } catch {
+            setUploadMessage(
+              "✅ Processing complete. Check console for results."
+            );
+          }
+        } else {
+          setUploadMessage(
+            "✅ Processing complete. Check console for results."
+          );
+        }
       }
-    } else if (err.code === 'ECONNABORTED') {
-      errorMessage = "❌ Request timeout. Please try again.";
-    } else if (err.message.includes('Network Error')) {
-      errorMessage = "❌ Network error. Please check your connection.";
+
+      fileInput.value = "";
+    } catch (err) {
+      console.error("Upload error:", err);
+
+      let errorMessage = "❌ Upload failed. Please try again.";
+
+      if (err.response?.data) {
+        try {
+          const errorText = await new Response(err.response.data).text();
+          console.log("Error response text:", errorText);
+
+          const errorData = JSON.parse(errorText);
+
+          if (errorData.detail) {
+            const validationErrors = errorData.detail
+              .map((d) => d.msg)
+              .join(", ");
+            errorMessage = `❌ Validation error: ${validationErrors}`;
+          } else if (errorData.msg) {
+            errorMessage = `❌ ${errorData.msg}`;
+          } else if (errorData.error) {
+            errorMessage = `❌ ${errorData.error}`;
+          }
+        } catch (parseError) {
+          console.log("Could not parse error response:", parseError);
+          errorMessage = "❌ Server error occurred.";
+        }
+      } else if (err.code === "ECONNABORTED") {
+        errorMessage = "❌ Request timeout. Please try again.";
+      } else if (err.message.includes("Network Error")) {
+        errorMessage = "❌ Network error. Please check your connection.";
+      } else if (err.message) {
+        errorMessage = `❌ ${err.message}`;
+      }
+
+      setUploadMessage(errorMessage);
     }
-    
-    setUploadMessage(errorMessage);
-  }
-};
+  };
 
   const handleTrainModel = async (e) => {
     e.preventDefault();
