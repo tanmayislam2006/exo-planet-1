@@ -281,34 +281,47 @@ const Researcher = () => {
     }
   };
 
-  const handleTrainModel = async (e) => {
-    e.preventDefault();
-    const fileInput = e.target.elements.trainFile;
-    const file = fileInput.files[0];
+const handleTrainModel = async (e) => {
+  e.preventDefault();
+  const fileInput = e.target.elements.trainFile;
+  const file = fileInput.files[0];
 
-    if (!file) {
-      setTrainMessage("Please select a training dataset file.");
-      return;
-    }
+  if (!file) {
+    setTrainMessage("Please select a training dataset file.");
+    return;
+  }
 
-    setTrainMessage("🧠 Training AI model... This may take a few moments.");
+  setTrainMessage("🧠 Training AI model... This may take a few moments.");
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("learning_rate", trainForm.learning_rate);
-      formData.append("n_estimators", trainForm.n_estimators);
-      formData.append("test_size", trainForm.test_size);
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("learning_rate", trainForm.learning_rate);
+    formData.append("n_estimators", trainForm.n_estimators);
+    formData.append("test_size", trainForm.test_size);
 
-      const response = await axiosInstance.post(`/researcher/train`, formData);
-      console.log(response.data);
-      setTrainMessage("✅ Model trained successfully! Results downloaded.");
-    } catch (err) {
-      setTrainMessage(
-        "❌ Training failed. Please check your data and try again."
-      );
-    }
-  };
+    const response = await axiosInstance.post(`/researcher/train`, formData, {
+      responseType: 'blob' // Important for file download
+    });
+
+    // Handle file download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'trained_model_results.csv');
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    
+    setTrainMessage("✅ Model trained successfully! Results downloaded.");
+  } catch (err) {
+    console.error("Training error:", err);
+    setTrainMessage(
+      "❌ Training failed. Please check your data and try again."
+    );
+  }
+};
 
   const handleLogout = () => {
     localStorage.clear();

@@ -135,59 +135,108 @@ router.post("/upload", upload.single("file"), async (req, res) => {
  * Train AI Model → External API এ হিট
  */
 router.post("/train", upload.single("file"), async (req, res) => {
-  console.log("Train endpoint hit");
   try {
-    if (!req.file) return res.status(400).json({ msg: "CSV file required" });
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        msg: "No file uploaded",
+      });
+    }
 
     const { learning_rate, n_estimators, test_size } = req.body;
 
-    // Since we're using memory storage, create a temporary file
-    const tempPath = path.join(__dirname, '../uploads', `temp_${Date.now()}.csv`);
-    
-    // Ensure uploads directory exists
-    const uploadsDir = path.join(__dirname, '../uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    
-    fs.writeFileSync(tempPath, req.file.buffer);
+    console.log("Received training parameters:", {
+      learning_rate,
+      n_estimators, 
+      test_size,
+      filename: req.file.originalname,
+      size: req.file.size
+    });
 
+    // Create FormData for multipart/form-data request
     const formData = new FormData();
-    formData.append("file", fs.createReadStream(tempPath));
-    formData.append("learning_rate", learning_rate);
-    formData.append("n_estimators", n_estimators);
-    formData.append("test_size", test_size);
+    
+    // Append the file buffer with original filename and content type
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname || 'data.csv',
+      contentType: req.file.mimetype || 'text/csv'
+    });
 
+    // Append the additional parameters
+    formData.append('learning_rate', learning_rate);
+    formData.append('n_estimators', n_estimators);
+    formData.append('test_size', test_size);
+
+    console.log("Sending to external training API...");
+
+    // Send as multipart/form-data to external API
     const response = await axios.post(
-      "http://13.200.246.18:8000/train",
+      "http://13.200.246.18:8000/train", 
       formData,
       {
-        headers: formData.getHeaders(),
+        headers: {
+          ...formData.getHeaders(),
+        },
+        timeout: 120000, // 2 minutes timeout for training
+        maxContentLength: 50 * 1024 * 1024,
+        responseType: 'arraybuffer' // Important for file download
       }
     );
 
-    // Clean up temp file
-    fs.unlinkSync(tempPath);
+    console.log("Response from external API - Status:", response.status);
+    console.log("Response headers:", response.headers);
+    console.log("Response data type:", typeof response.data);
+    console.log("Response data length:", response.data.length);
 
-    // Create output file
-    const outputPath = path.join(__dirname, "../uploads", "trained_model_result.csv");
-    fs.writeFileSync(outputPath, response.data);
+    // Get content type from response
+    const contentType = response.headers['content-type'] || '';
 
-    res.download(outputPath, "trained_model_results.csv", (err) => {
-      if (err) {
-        console.error("Download error:", err);
-      }
-      // Clean up output file after download
-      setTimeout(() => {
-        if (fs.existsSync(outputPath)) {
-          fs.unlinkSync(outputPath);
-        }
-      }, 5000);
-    });
+    // Always force download as CSV file
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="trained_model_results.csv"');
+    res.setHeader('Content-Length', response.data.length);
+    
+    // Send the file data for download
+    return res.send(Buffer.from(response.data));
 
   } catch (err) {
     console.error("Train API Error:", err.message);
-    res.status(500).json({ msg: "Server error while hitting Train API" });
+
+    // Handle different error types
+    if (err.response) {
+      console.error("External API response error:", err.response.status);
+      console.error("External API error data:", err.response.data);
+
+      if (err.response.status === 422) {
+        // Validation error from FastAPI
+        return res.status(422).json({
+          success: false,
+          msg: "Validation error in external API",
+          detail: err.response.data.detail,
+        });
+      }
+
+      return res.status(err.response.status).json({
+        success: false,
+        msg: `External API error: ${err.response.status}`,
+        error: err.response.data,
+      });
+    } else if (err.request) {
+      // Network error
+      console.error("Network error details:", err.request);
+      return res.status(503).json({
+        success: false,
+        msg: "Cannot connect to external API service",
+        error: err.message
+      });
+    } else {
+      // Other errors
+      return res.status(500).json({
+        success: false,
+        msg: "Server error while processing file",
+        error: err.message
+      });
+    }
   }
 });
 
