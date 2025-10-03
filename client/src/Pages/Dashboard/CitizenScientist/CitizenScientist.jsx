@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, use } from 'react';
-import { User, Send, FileText, Mic, LogOut, Rocket, Users, Bot, Cpu } from 'lucide-react'; 
+import { User, Send, FileText, Mic, LogOut, Rocket, Users, Bot, Cpu, ShieldQuestionMark } from 'lucide-react'; 
 import AuthContext from '../../../Context/AuthContext';
-
-// --- Constants ---
-const API_BASE = "https://exo-planet-finder.onrender.com/citizen";
+import useAxios from '../../../Hooks/useAxios';
 
 // --- Main Component ---
 const CitizenScientist = () => {
@@ -12,6 +10,7 @@ const CitizenScientist = () => {
   const [isListening, setIsListening] = useState(false);
   const [csvMessage, setCsvMessage] = useState({ type: '', text: '' });
   const {logoutUser, firebaseUser} = use(AuthContext)
+  const axiosInstance=useAxios()
   
   const chatBoxRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -35,21 +34,10 @@ const CitizenScientist = () => {
 
     appendMessage(msg, "user");
     setChatInput("");
-
     try {
-      const token = localStorage.getItem("token") || "placeholder-token"; 
-      
-      const res = await fetch(`${API_BASE}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": token },
-        body: JSON.stringify({ message: msg })
-      });
-      
-      await new Promise(resolve => setTimeout(resolve, 500)); 
-      
-      if (!res.ok) throw new Error("API call failed");
-      
-      const simulatedResponse = `Analyzing transit data for your query: "${msg}". The Exo Assistant detects promising patterns in Sector 4. Further computational review is queued.`;
+      const res=await axiosInstance.post("/citizen/chat", { message: msg, session_id: "1515" });
+      console.log(res.data.reply);
+      const simulatedResponse = `${res.data.reply}`;
       appendMessage(simulatedResponse, "bot");
       
     } catch (err) {
