@@ -7,6 +7,8 @@ import Register from "../Pages/Register/Register";
 import PrivateRouter from "./PrivateRouter";
 import DashboardLayout from "../Layout/DashboardLayout";
 import Dashboard from "../Pages/Dashboard/Dashboard";
+import CitizenScientist from "../Pages/Dashboard/CitizenScientist/CitizenScientist";
+import DashBoardContent from "../Pages/Dashboard/DashBoardContent/DashBoardContent";
 
 
 const router = createBrowserRouter([
@@ -33,8 +35,13 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/dashboard",
-        element: <Dashboard />,
+        element: <DashBoardContent />,
       },
+      {
+        path: "/dashboard/citizen-scientist",
+        element: <CitizenScientist />,
+        // element: <PrivateRouter><CitizenScientist /></PrivateRouter>,
+      }
     ]
   }
 ]);
