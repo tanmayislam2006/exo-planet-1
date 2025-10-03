@@ -53,6 +53,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
  *Train AI Model → External API এ হিট
  */
 router.post("/train", upload.single("file"), async (req, res) => {
+  console.log("Train endpoint hit");
   try {
     if (!req.file) return res.status(400).json({ msg: "CSV file required" });
 
@@ -64,10 +65,8 @@ router.post("/train", upload.single("file"), async (req, res) => {
     formData.append("n_estimators", n_estimators);
     formData.append("test_size", test_size);
 
-    const response = await axios.post("http://your-api-server/train-model", formData, {
-      headers: formData.getHeaders(),
-      responseType: "arraybuffer", // CSV রিটার্ন হবে
-    });
+    const response = await axios.post("http://13.200.246.18:8000/train", formData);
+    console.log(response.data);
 
     const outputPath = path.join(__dirname, "../uploads", "trained_model_result.csv");
     fs.writeFileSync(outputPath, response.data);

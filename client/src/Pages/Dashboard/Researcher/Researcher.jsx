@@ -131,26 +131,8 @@ const Researcher = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: localStorage.getItem("token") || "placeholder-token",
-        },
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Upload failed");
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "researcher_result.csv";
-      a.click();
-
-      setUploadMessage("✅ File processed successfully! Results downloaded.");
-      fileInput.value = "";
+      const res = await axiosInstance.post(`/researcher/upload`, formData);
+      console.log(res.data);
     } catch (err) {
       setUploadMessage("❌ Upload failed. Please try again.");
     }
