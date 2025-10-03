@@ -13,7 +13,7 @@ const app = express();
 // Middleware
 
 app.use(cors({
-    origin: "*"   
+  origin: "*"   
 }));
 app.use(express.json());
 app.use(bodyParser.json());
@@ -25,26 +25,29 @@ connectDB();
 const authRoutes = require("./routes/auth");
 app.use("/auth", authRoutes);
 
+const researcherRoutes = require("./routes/researcher")
+const citizenRoutes = require("./routes/citizen");;
+
+
 // Serve frontend (static)
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 // Default route
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+  res.send("API is running...");
 });
+//citizenRoutes
 
+app.use("/citizen", citizenRoutes);
+
+//researcherRoutes
+app.use("/researcher", researcherRoutes);
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Server running on http://localhost:${PORT}`)
 );
 
-//citizenRoutes
-const citizenRoutes = require("./routes/citizen");
-app.use("/citizen", citizenRoutes);
 
-//researcherRoutes
-const researcherRoutes = require("./routes/researcher");
-app.use("/researcher", researcherRoutes);
 
 

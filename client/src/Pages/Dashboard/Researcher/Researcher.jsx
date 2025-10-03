@@ -1,7 +1,17 @@
 // Researcher.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { FileText, Brain, Upload, Download, Cpu, Database, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import {
+  FileText,
+  Brain,
+  Upload,
+  Download,
+  Cpu,
+  Database,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
 import Navbar from "./Navbar";
 import useAxios from "../../../Hooks/useAxios";
 
@@ -109,34 +119,131 @@ const Researcher = () => {
       const prediction = res.data?.prediction;
       setResult(prediction);
     } catch (err) {
-      setError("❌ Server Error - Could not process request. Please try again.");
+      setError(
+        "❌ Server Error - Could not process request. Please try again."
+      );
       console.error("API Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCsvUpload = async (e) => {
-    e.preventDefault();
-    const fileInput = e.target.elements.csvFile;
-    const file = fileInput.files[0];
+const handleCsvUpload = async (e) => {
+  e.preventDefault();
+  const fileInput = e.target.elements.csvFile;
+  const file = fileInput.files[0];
 
-    if (!file) {
-      setUploadMessage("Please select a CSV file first.");
-      return;
+  if (!file) {
+    setUploadMessage("Please select a CSV file first.");
+    return;
+  }
+
+  // Validate file
+  if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+    setUploadMessage("❌ Please upload a valid CSV file.");
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    setUploadMessage("❌ File size too large. Maximum 10MB allowed.");
+    return;
+  }
+
+  setUploadMessage("🔄 Processing your CSV file...");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await axiosInstance.post(`/researcher/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'blob', // Handle both JSON and file responses
+      timeout: 60000,
+    });
+
+    console.log("Response headers:", res.headers);
+    console.log("Response type:", res.headers['content-type']);
+
+    // Check if response is JSON or file
+    const contentType = res.headers['content-type'] || '';
+
+    if (contentType.includes('application/json')) {
+      // It's a JSON response
+      const text = await res.data.text();
+      const result = JSON.parse(text);
+      
+      if (result.success) {
+        setUploadMessage("✅ Analysis complete! Displaying results...");
+        
+        // Display the prediction results
+        if (result.data && result.data.prediction) {
+          setResult(result.data.prediction);
+        } else {
+          setResult(result.data);
+        }
+      } else {
+        throw new Error(result.msg || "Analysis failed");
+      }
+      
+    } else if (contentType.includes('text/csv') || contentType.includes('application/octet-stream')) {
+      // It's a CSV file - trigger download
+      setUploadMessage("✅ Analysis complete! Downloading results...");
+      
+      const blob = new Blob([res.data], { 
+        type: contentType.includes('text/csv') ? 'text/csv' : 'application/octet-stream' 
+      });
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = contentType.includes('text/csv') ? 'prediction_results.csv' : 'results.bin';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      setUploadMessage("✅ Analysis complete! Results downloaded.");
+      
+    } else {
+      // Unknown content type
+      console.log("Unknown response, full response:", res);
+      setUploadMessage("✅ Processing complete. Check console for results.");
     }
 
-    setUploadMessage("🔄 Processing your CSV file...");
+    fileInput.value = "";
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await axiosInstance.post(`/researcher/upload`, formData);
-      console.log(res.data);
-    } catch (err) {
-      setUploadMessage("❌ Upload failed. Please try again.");
+  } catch (err) {
+    console.error("Upload error:", err);
+    
+    let errorMessage = "❌ Upload failed. Please try again.";
+    
+    if (err.response?.data) {
+      try {
+        // Try to read error from blob response
+        const errorText = await new Response(err.response.data).text();
+        const errorData = JSON.parse(errorText);
+        
+        if (errorData.detail) {
+          // FastAPI validation error
+          const validationErrors = errorData.detail.map(d => d.msg).join(', ');
+          errorMessage = `❌ Validation error: ${validationErrors}`;
+        } else {
+          errorMessage = `❌ ${errorData.msg || 'Server error'}`;
+        }
+      } catch {
+        errorMessage = "❌ Server error occurred.";
+      }
+    } else if (err.code === 'ECONNABORTED') {
+      errorMessage = "❌ Request timeout. Please try again.";
+    } else if (err.message.includes('Network Error')) {
+      errorMessage = "❌ Network error. Please check your connection.";
     }
-  };
+    
+    setUploadMessage(errorMessage);
+  }
+};
 
   const handleTrainModel = async (e) => {
     e.preventDefault();
@@ -157,25 +264,9 @@ const Researcher = () => {
       formData.append("n_estimators", trainForm.n_estimators);
       formData.append("test_size", trainForm.test_size);
 
-      const res = await fetch(`${API_BASE}/train`, {
-        method: "POST",
-        headers: {
-          Authorization: localStorage.getItem("token") || "placeholder-token",
-        },
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Training failed");
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "trained_model_results.csv";
-      a.click();
-
+      const response = await axiosInstance.post(`/researcher/train`, formData);
+      console.log(response.data);
       setTrainMessage("✅ Model trained successfully! Results downloaded.");
-      fileInput.value = "";
     } catch (err) {
       setTrainMessage(
         "❌ Training failed. Please check your data and try again."
@@ -225,13 +316,15 @@ const Researcher = () => {
               <Database className="w-5 h-5" />
               Classification
             </h5>
-            <div className={`text-2xl font-bold mb-2 ${
-              result.class === 'CONFIRMED' 
-                ? 'text-green-400' 
-                : result.class === 'CANDIDATE'
-                ? 'text-yellow-400'
-                : 'text-red-400'
-            }`}>
+            <div
+              className={`text-2xl font-bold mb-2 ${
+                result.class === "CONFIRMED"
+                  ? "text-green-400"
+                  : result.class === "CANDIDATE"
+                  ? "text-yellow-400"
+                  : "text-red-400"
+              }`}
+            >
               {result.class}
             </div>
             <div className="text-white/70 text-sm">Exoplanet Status</div>
@@ -247,7 +340,7 @@ const Researcher = () => {
               {(result.confidence * 100).toFixed(1)}%
             </div>
             <div className="w-full bg-white/20 rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-to-r from-green-400 to-cyan-400 h-2 rounded-full transition-all duration-1000"
                 style={{ width: `${result.confidence * 100}%` }}
               ></div>
@@ -274,30 +367,35 @@ const Researcher = () => {
             Classification Probabilities
           </h5>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(result.probabilities || {}).map(([category, probability]) => (
-              <div key={category} className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-white font-medium capitalize">
-                    {category.replace('_', ' ')}
-                  </span>
-                  <span className="text-white/70 text-sm">
-                    {(probability * 100).toFixed(1)}%
-                  </span>
+            {Object.entries(result.probabilities || {}).map(
+              ([category, probability]) => (
+                <div
+                  key={category}
+                  className="bg-white/5 p-4 rounded-2xl border border-white/10"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white font-medium capitalize">
+                      {category.replace("_", " ")}
+                    </span>
+                    <span className="text-white/70 text-sm">
+                      {(probability * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-1000 ${
+                        category === "Confirmed"
+                          ? "bg-green-500"
+                          : category === "Candidate"
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                      }`}
+                      style={{ width: `${probability * 100}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="w-full bg-white/20 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-1000 ${
-                      category === 'Confirmed' 
-                        ? 'bg-green-500' 
-                        : category === 'Candidate'
-                        ? 'bg-yellow-500'
-                        : 'bg-red-500'
-                    }`}
-                    style={{ width: `${probability * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </div>
 
@@ -309,28 +407,32 @@ const Researcher = () => {
           </h5>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
             <div className="text-white/80 leading-relaxed space-y-4">
-              {result.explanation?.split('\n\n').map((paragraph, index) => (
+              {result.explanation?.split("\n\n").map((paragraph, index) => (
                 <p key={index} className="text-justify">
                   {paragraph}
                 </p>
               ))}
             </div>
-            
+
             {/* Key Highlights */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
                 <Brain className="w-8 h-8 text-blue-400 flex-shrink-0" />
                 <div>
                   <div className="text-white font-semibold">Orbital Period</div>
-                  <div className="text-blue-300">{formData.koi_period} days</div>
+                  <div className="text-blue-300">
+                    {formData.koi_period} days
+                  </div>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3 p-3 bg-purple-500/10 rounded-xl border border-purple-500/20">
                 <Cpu className="w-8 h-8 text-purple-400 flex-shrink-0" />
                 <div>
                   <div className="text-white font-semibold">Planet Radius</div>
-                  <div className="text-purple-300">{formData.koi_prad} Earth Radii</div>
+                  <div className="text-purple-300">
+                    {formData.koi_prad} Earth Radii
+                  </div>
                 </div>
               </div>
             </div>
@@ -412,7 +514,8 @@ const Researcher = () => {
                       KOI Parameters Analysis
                     </h3>
                     <p className="text-white/70">
-                      Input Kepler Object of Interest parameters for exoplanet prediction
+                      Input Kepler Object of Interest parameters for exoplanet
+                      prediction
                     </p>
                   </div>
                 </div>
@@ -430,7 +533,10 @@ const Researcher = () => {
                       koi_steff: { label: "KOI Stellar Temp", step: "1" },
                       koi_slogg: { label: "KOI Stellar LogG", step: "0.1" },
                       koi_srad: { label: "KOI Stellar Radius", step: "0.1" },
-                      koi_kepmag: { label: "KOI Kepler Magnitude", step: "0.1" },
+                      koi_kepmag: {
+                        label: "KOI Kepler Magnitude",
+                        step: "0.1",
+                      },
                       ra: { label: "Right Ascension", step: "0.01" },
                       dec: { label: "Declination", step: "0.01" },
                     }).map(([key, config]) =>
