@@ -145,14 +145,6 @@ router.post("/train", upload.single("file"), async (req, res) => {
 
     const { learning_rate, n_estimators, test_size } = req.body;
 
-    console.log("Received training parameters:", {
-      learning_rate,
-      n_estimators, 
-      test_size,
-      filename: req.file.originalname,
-      size: req.file.size
-    });
-
     // Create FormData for multipart/form-data request
     const formData = new FormData();
     
@@ -166,9 +158,6 @@ router.post("/train", upload.single("file"), async (req, res) => {
     formData.append('learning_rate', learning_rate);
     formData.append('n_estimators', n_estimators);
     formData.append('test_size', test_size);
-
-    console.log("Sending to external training API...");
-
     // Send as multipart/form-data to external API
     const response = await axios.post(
       "http://13.200.246.18:8000/train", 
@@ -182,11 +171,6 @@ router.post("/train", upload.single("file"), async (req, res) => {
         responseType: 'arraybuffer' // Important for file download
       }
     );
-
-    console.log("Response from external API - Status:", response.status);
-    console.log("Response headers:", response.headers);
-    console.log("Response data type:", typeof response.data);
-    console.log("Response data length:", response.data.length);
 
     // Get content type from response
     const contentType = response.headers['content-type'] || '';
