@@ -75,9 +75,10 @@ const DashboardLayout = () => {
   };
 
   const navItems = [
-    { name: "Home", path: "/dashboard", icon: HomeIcon, current: true },
-    { name: "My Transits", path: "/transits", icon: ClipboardListIcon, current: false },
-    { name: "AI Assistant", path: "/ai", icon: CpuIcon, current: false },
+    { name: "Home", path: "/", icon: HomeIcon},
+    { name: "Dashboard", path: "/dashboard", icon: HomeIcon, current: true },
+    { name: "Researcher", path: "/dashboard/researcher", icon: ClipboardListIcon, current: false },
+    { name: "AI Assistant", path: "/dashboard/citizen-scientist", icon: CpuIcon, current: false },
     // Add more navigation items here
   ];
 
